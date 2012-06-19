@@ -1,13 +1,12 @@
 package com.urbanairship.octobot;
 
-import java.util.List;
-import java.util.HashMap;
-import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
-
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
-import org.apache.log4j.BasicConfigurator;
 
 
 // The fun starts here!
