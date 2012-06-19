@@ -1,21 +1,15 @@
 package com.urbanairship.octobot;
 
 // AMQP Support
-import java.io.IOException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.QueueingConsumer;
-
-// Beanstalk Support
-import com.surftools.BeanstalkClient.BeanstalkException;
-import com.surftools.BeanstalkClient.Job;
-import com.surftools.BeanstalkClientImpl.ClientImpl;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-
+import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-import org.apache.log4j.Logger;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -34,6 +28,10 @@ public class QueueConsumer implements Runnable {
 
     private final Logger logger = Logger.getLogger("Queue Consumer");
     private boolean enableEmailErrors = Settings.getAsBoolean("Octobot", "email_enabled");
+    
+    private static String QUEUE_NAME = "queueName";
+    private static String TASK       = "task";
+    private static String RETRIES    = "retries";
 
     // Initialize the consumer with a queue object (AMQP, Beanstalk, or Redis).
     public QueueConsumer(Queue queue) {
@@ -41,12 +39,11 @@ public class QueueConsumer implements Runnable {
     }
 
     // Fire up the appropriate queue listener and begin invoking tasks!.
+    @Override
     public void run() {
         if (queue.queueType.equals("amqp")) {
             channel = getAMQPChannel(queue);
-            consumeFromAMQP();
-        } else if (queue.queueType.equals("beanstalk")) {
-            consumeFromBeanstalk();
+            consumeFromAMQP();       
         } else if (queue.queueType.equals("redis")) {
             consumeFromRedis();
         } else {
@@ -77,41 +74,7 @@ public class QueueConsumer implements Runnable {
                 catch (IOException e) { logger.error("Error ack'ing message.", e); }
             }
         }
-    }
-
-
-    // Attempt to register to receive messages from Beanstalk and invoke tasks.
-    private void consumeFromBeanstalk() {
-        ClientImpl beanstalkClient = new ClientImpl(queue.host, queue.port);
-        beanstalkClient.watch(queue.queueName);
-        beanstalkClient.useTube(queue.queueName);
-        logger.info("Connected to Beanstalk; waiting for jobs.");
-
-        while (true) {
-            Job job = null;
-            try { job = beanstalkClient.reserve(1); }
-            catch (BeanstalkException e) {
-                logger.error("Beanstalk connection error.", e);
-                beanstalkClient = Beanstalk.getBeanstalkChannel(queue.host, 
-                        queue.port, queue.queueName);
-                continue;
-            }
-
-            if (job != null) {
-                String message = new String(job.getData());
-
-                try { invokeTask(message); }
-                catch (Exception e) { logger.error("Error handling message.", e); }
-
-                try { beanstalkClient.delete(job.getJobId()); }
-                catch (BeanstalkException e) {
-                    logger.error("Error sending message receipt.", e);
-                    beanstalkClient = Beanstalk.getBeanstalkChannel(queue.host, 
-                        queue.port, queue.queueName);
-                }
-            }
-        }
-    }
+    }    
 
 
     private void consumeFromRedis() {
@@ -163,7 +126,7 @@ public class QueueConsumer implements Runnable {
 // Invokes a task based on the name of the task passed in the message via
 // reflection, accounting for non-existent tasks and errors while running.
 public boolean invokeTask(String rawMessage) {
-    String taskName = "";
+    String taskName = null;
     JSONObject message;
     int retryCount = 0;
     long retryTimes = 0;
@@ -179,9 +142,11 @@ public boolean invokeTask(String rawMessage) {
 
         try {
             message = (JSONObject) JSONValue.parse(rawMessage);
-            taskName = (String) message.get("task");
-            if (message.containsKey("retries"))
-                retryTimes = (Long) message.get("retries");
+            message.put(QUEUE_NAME, queue.queueName);
+            
+            taskName = (String) message.get(TASK);
+            if (message.containsKey(RETRIES))
+                retryTimes = (Long) message.get(RETRIES);
         } catch (Exception e) {
             logger.error("Error: Invalid message received: " + rawMessage);
             return executedSuccessfully;
@@ -218,13 +183,20 @@ public boolean invokeTask(String rawMessage) {
 
     // Deliver an e-mail error notification if enabled.
     if (enableEmailErrors && !executedSuccessfully) {
-        String email = "Error running task: " + taskName + ".\n\n"
-            + "Attempted executing " + retryCount + " times as specified.\n\n"
-            + "The original input was: \n\n" + rawMessage + "\n\n"
-            + "Here's the error that resulted while running the task:\n\n"
-            + stackToString(lastException);
+        StringBuilder emailBuilder = new StringBuilder();
+        emailBuilder.append("Error running task: ");
+        emailBuilder.append(taskName);
+        emailBuilder.append(".\n\n");
+        emailBuilder.append("Attempted executing ");
+        emailBuilder.append(retryCount);
+        emailBuilder.append(" times as specified.\n\n");
+        emailBuilder.append("The original input was: \n\n");
+        emailBuilder.append(rawMessage);
+        emailBuilder.append("\n\n");
+        emailBuilder.append("Here's the error that resulted while running the task:\n\n");
+        emailBuilder.append(stackToString(lastException));
 
-        try { MailQueue.put(email); }
+        try { MailQueue.put(emailBuilder.toString()); }
         catch (InterruptedException e) { }
     }
 
