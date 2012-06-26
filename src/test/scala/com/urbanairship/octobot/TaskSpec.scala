@@ -1,6 +1,11 @@
 import com.simple.simplespec.Spec
 
+import com.urbanairship.octobot.Queue
 import com.urbanairship.octobot.QueueConsumer
+import com.urbanairship.octobot.Settings
+import com.urbanairship.octobot.OctobotConstants
+import java.util.List
+import java.util.HashMap
 
 import org.apache.log4j.Logger
 import org.apache.log4j.BasicConfigurator
@@ -18,24 +23,36 @@ class TaskSpec extends Spec {
     val retry3x = "{\"task\":\"this.does.not.Exist\", \"retries\":3}"
     
     @Test def `should execute a task successfully` {
-      val queueConsumer = new QueueConsumer(null)
+      val list = Settings.configuration.get(OctobotConstants.OCTOBOT).get(OctobotConstants.QUEUES).asInstanceOf[List[HashMap[String, Object]]]
+      val queue = new Queue(list.get(0))
+      val queueConsumer = new QueueConsumer(queue)
+
       queueConsumer.invokeTask(shouldSucceed) must be(true)
     }
 
     @Test def `should fail to run a task with a non-existent run method gracefully` {
-      val queueConsumer = new QueueConsumer(null)
+      val list = Settings.configuration.get(OctobotConstants.OCTOBOT).get(OctobotConstants.QUEUES).asInstanceOf[List[HashMap[String, Object]]]
+      val queue = new Queue(list.get(0))
+      val queueConsumer = new QueueConsumer(queue)
+
       println("Following expected to fail due to lack of a static run method.")
       queueConsumer.invokeTask(noRunMethod) must be(false)
     }
 
     @Test def `should fail to run a non-existent task gracefully` {
-      val queueConsumer = new QueueConsumer(null)
+      val list = Settings.configuration.get(OctobotConstants.OCTOBOT).get(OctobotConstants.QUEUES).asInstanceOf[List[HashMap[String, Object]]]
+      val queue = new Queue(list.get(0))
+      val queueConsumer = new QueueConsumer(queue)
+
       println("Following task is expected to fail because it does not exist.")
       queueConsumer.invokeTask(nonExistent) must be(false)
     }
 
     @Test def `should fail a task, then retry it 3 times when instructed by JSON` {
-      val queueConsumer = new QueueConsumer(null)
+      val list = Settings.configuration.get(OctobotConstants.OCTOBOT).get(OctobotConstants.QUEUES).asInstanceOf[List[HashMap[String, Object]]]
+      val queue = new Queue(list.get(0))
+      val queueConsumer = new QueueConsumer(queue)
+
       println("Following task is expected to run and fail three times.")
       queueConsumer.invokeTask(retry3x) must be(false)
     }
