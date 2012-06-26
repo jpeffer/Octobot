@@ -30,7 +30,7 @@ public class QueueConsumer implements Runnable
     Channel channel           = null;
     Connection connection     = null;
     QueueingConsumer consumer = null;
-    
+
     private final Logger logger             = Logger.getLogger("Queue Consumer");
     private boolean enableEmailErrors       = Settings.getAsBoolean(OctobotConstants.OCTOBOT, "email_enabled");
     private static final String QUEUE_NAME  = "queueName";
@@ -46,9 +46,16 @@ public class QueueConsumer implements Runnable
      *
      * @param queue
      */
-    public QueueConsumer(Queue queue)
+    public QueueConsumer(Queue queue) throws Exception
     {
-        this.queue = queue;
+        if(queue == null)
+        {
+            throw new Exception("Invalid Queue passed to QueueConsumer constructor.");
+        }
+        else
+        {
+            this.queue = queue;
+        }                
     }
 
     /**

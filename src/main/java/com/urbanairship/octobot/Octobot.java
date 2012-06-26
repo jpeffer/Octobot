@@ -8,13 +8,12 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-
 /**
  * The fun starts here!
  * This class is the main entry point to the application.
  * It initializes (a) queue consumer thread(s) responsible for
  * receiving and passing messages on to tasks for execution.
- * 
+ *
  * @author
  */
 public class Octobot
@@ -23,7 +22,7 @@ public class Octobot
     private static final Logger logger = Logger.getLogger(OctobotConstants.OCTOBOT);
 
     /**
-     * 
+     *
      * @param args
      */
     public static void main(String[] args)
@@ -87,22 +86,31 @@ public class Octobot
 
             // Fetch the number of workers to spawn and their priority.
             int numWorkers = Settings.getIntFromYML(queueConf.get("workers"), 1);
-            int priority   = Settings.getIntFromYML(queueConf.get("priority"), 5);
+            int priority = Settings.getIntFromYML(queueConf.get("priority"), 5);
 
             Queue queue = new Queue(queueConf);
 
             // Spawn worker threads for each queue in our configuration.
             for(int i = 0; i < numWorkers; i++)
             {
-                QueueConsumer consumer = new QueueConsumer(queue);
-                Thread worker = new Thread(consumer, "Worker");
+                QueueConsumer consumer;
+                try
+                {
+                    consumer = new QueueConsumer(queue);
+                    Thread worker = new Thread(consumer, "Worker");
 
-                logger.info("Attempting to connect to " + queueConf.get(OctobotConstants.QUEUE_PROTOCOL)
-                        + " queue: " + queueConf.get(OctobotConstants.QUEUE_NAME) + " with priority "
-                        + priority + "/10 " + "(Worker " + (i + 1) + OctobotConstants.FORWARD_SLASH + numWorkers + ").");
+                    logger.info("Attempting to connect to " + queueConf.get(OctobotConstants.QUEUE_PROTOCOL)
+                            + " queue: " + queueConf.get(OctobotConstants.QUEUE_NAME) + " with priority "
+                            + priority + "/10 " + "(Worker " + (i + 1) + OctobotConstants.FORWARD_SLASH + numWorkers + ").");
 
-                worker.setPriority(priority);
-                worker.start();
+                    worker.setPriority(priority);
+                    worker.start();
+                }
+                catch(Exception e)
+                {
+                    logger.error(e.getMessage(), e);
+                }
+
             }
         }
 
