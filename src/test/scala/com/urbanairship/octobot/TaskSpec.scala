@@ -1,4 +1,4 @@
-import com.codahale.simplespec.Spec
+import com.simple.simplespec.Spec
 
 import com.urbanairship.octobot.QueueConsumer
 

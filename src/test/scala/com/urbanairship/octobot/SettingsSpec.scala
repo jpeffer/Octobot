@@ -1,4 +1,4 @@
-import com.codahale.simplespec._
+import com.simple.simplespec._
 
 import com.urbanairship.octobot.Settings
 
