@@ -5,6 +5,13 @@
     <artifactId>octobot</artifactId>
     <version>0.1-SNAPSHOT</version>
     <name>Octobot distributed task queue</name>
+    <licenses>
+        <license>
+            <name>3-Clause BSD License</name>
+            <url>http://www.opensource.org/licenses/BSD-3-Clause</url>
+            <distribution>repo</distribution>
+        </license>            
+    </licenses>
     <properties>
         <scala.version>2.9.1</scala.version>
         <metrics.version>2.1.2</metrics.version>
@@ -54,7 +61,7 @@
         <dependency>
             <groupId>com.surftools</groupId>
             <artifactId>BeanstalkClient</artifactId>
-            <version>1.4.6-SNAPSHOT</version>
+            <version>1.4.6</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
