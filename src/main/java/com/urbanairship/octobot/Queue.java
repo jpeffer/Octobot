@@ -9,14 +9,13 @@ import java.util.HashMap;
 public class Queue
 {
 
-    public String queueType;
-    public String queueName;
-
-    public String host;
+    public String  queueType;
+    public String  queueName;
+    public String  host;
     public Integer port;
-    public String username;
-    public String password;
-    public String vhost;
+    public String  username;
+    public String  password;
+    public String  vhost;
 
     /**
      * 

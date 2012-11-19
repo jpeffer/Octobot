@@ -110,6 +110,7 @@ public class QueueConsumer implements Runnable
             if(task != null && task.getBody() != null)
             {
                 invokeTask(new String(task.getBody()));
+                
                 try
                 {
                     channel.basicAck(task.getEnvelope().getDeliveryTag(), false);
@@ -181,6 +182,7 @@ public class QueueConsumer implements Runnable
     {
         logger.info("Connecting to Redis...");
         Jedis jedis = new Jedis(queue.host, queue.port);
+        
         try
         {
             jedis.connect();
